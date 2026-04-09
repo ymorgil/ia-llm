@@ -1,0 +1,24 @@
+# Entorno virtual (nombres más comunes)
+venv/
+env/
+.env/
+.venv/
+ENV/
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Archivos de distribución/build
+dist/
+build/
+*.egg-info/
+
+# IDEs
+.vscode/
+.idea/
+
+# Variables de entorno (¡importante por seguridad!)
+.env
+*.env
