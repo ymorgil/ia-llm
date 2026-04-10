@@ -1,12 +1,4 @@
-"""
-index_data.py
-=============
-Fase 2: Genera embeddings de cada fragmento de transcripción
-y los indexa en una base de datos vectorial ChromaDB (persistente en disco).
-
-Requisito previo:
-    ollama pull nomic-embed-text
-"""
+#  Fase 2: Script de indexación (index_data.py): genera los embeddings e indexa el dataset en la base de datos vectorial
 
 import json
 import os
@@ -15,23 +7,16 @@ from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.schema import Document
 
-# ── Configuración ─────────────────────────────────────────────────────────────
 INPUT_FILE       = "train_clean.json"
 CHROMA_DIR       = "./chroma_db"          # directorio de persistencia
 COLLECTION_NAME  = "khanacademy"
-EMBED_MODEL      = "nomic-embed-text"     # modelo de embeddings en Ollama
+EMBED_MODEL      = "nomic-embed-text"     # modelo de embeddings en Ollama sugerido
 BATCH_SIZE       = 50                     # documentos por lote (evita sobrecarga)
-# ──────────────────────────────────────────────────────────────────────────────
 
-
+# Carga el JSON limpio y convierte cada registro en un objeto Document de LangChain, con metadatos para poder filtrar después.
 def cargar_documentos(ruta: str) -> list[Document]:
-    """
-    Carga el JSON limpio y convierte cada registro en un objeto Document
-    de LangChain, con metadatos para poder filtrar después.
-    """
     with open(ruta, "r", encoding="utf-8") as f:
         registros = json.load(f)
-
     documentos = []
     for r in registros:
         doc = Document(
@@ -46,15 +31,10 @@ def cargar_documentos(ruta: str) -> list[Document]:
             },
         )
         documentos.append(doc)
-
     return documentos
 
-
+# Añade documentos a ChromaDB en lotes para no saturar la memoria ni sobrecargar el servidor de embeddings.
 def indexar_en_lotes(vectorstore: Chroma, documentos: list[Document], batch_size: int):
-    """
-    Añade documentos a ChromaDB en lotes para no saturar la memoria
-    ni sobrecargar el servidor de embeddings.
-    """
     total = len(documentos)
     for inicio in tqdm(range(0, total, batch_size), desc="Indexando lotes"):
         lote = documentos[inicio : inicio + batch_size]
@@ -62,8 +42,8 @@ def indexar_en_lotes(vectorstore: Chroma, documentos: list[Document], batch_size
 
 
 def main():
-    print("=" * 60)
-    print("  Fase 2 — Indexación en ChromaDB")
+    print("")
+    print("  Fase 2 — Indexación en Base de Datos Vectorial")
     print("=" * 60)
 
     # ── 1. Verificar que existe el JSON limpio ────────────────────────────────

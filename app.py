@@ -1,9 +1,5 @@
+# Aplicación principal (app.py): pipeline RAG + interfaz Gradio completamente funcional
 """
-app.py
-======
-Fase 3 + 4: Pipeline RAG completo con LangChain + Ollama
-e interfaz de usuario con Gradio.
-
 Requisitos previos:
     1. python clean_json.py      → genera train_clean.json
     2. python index_data.py      → genera ./chroma_db
@@ -19,14 +15,12 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 
-# ── Configuración global ──────────────────────────────────────────────────────
 CHROMA_DIR      = "./chroma_db"
 COLLECTION_NAME = "khanacademy"
 EMBED_MODEL     = "nomic-embed-text"
 LLM_MODEL       = "llama3.2"
-# ──────────────────────────────────────────────────────────────────────────────
 
-# ── Prompt del sistema ────────────────────────────────────────────────────────
+# Prompt del sistema 
 PROMPT_TEMPLATE = """Eres un asistente educativo especializado en el contenido de Khan Academy.
 Responde ÚNICAMENTE basándote en el contexto proporcionado a continuación.
 Si la respuesta no se encuentra en el contexto, indica claramente:
@@ -46,13 +40,9 @@ PROMPT = PromptTemplate(
     input_variables=["context", "chat_history", "question"],
     template=PROMPT_TEMPLATE,
 )
-# ──────────────────────────────────────────────────────────────────────────────
 
-
+# Carga los temas disponibles desde el JSON limpio para el dropdown.
 def cargar_temas() -> list[str]:
-    """
-    Carga los temas disponibles desde el JSON limpio para el dropdown.
-    """
     try:
         with open("train_clean.json", "r", encoding="utf-8") as f:
             datos = json.load(f)
@@ -66,12 +56,8 @@ def cargar_temas() -> list[str]:
     except FileNotFoundError:
         return ["Todos"]
 
-
+# Crea y devuelve una ConversationalRetrievalChain con los parámetros dados, cada vez que el usuario cambia parámetros del retriever
 def crear_chain(k: int, score_threshold: float, llm_model: str):
-    """
-    Crea y devuelve una ConversationalRetrievalChain con los parámetros dados.
-    Se llama cada vez que el usuario cambia parámetros del retriever.
-    """
     # Embeddings y vectorstore
     embeddings  = OllamaEmbeddings(model=EMBED_MODEL)
     vectorstore = Chroma(
@@ -111,11 +97,9 @@ def crear_chain(k: int, score_threshold: float, llm_model: str):
 
     return chain
 
+# Formatea los documentos recuperados para mostrarlos en la interfaz.
 
 def formatear_fuentes(documentos: list) -> str:
-    """
-    Formatea los documentos recuperados para mostrarlos en la interfaz.
-    """
     if not documentos:
         return "⚠️ No se recuperaron fragmentos relevantes para esta consulta."
 
@@ -132,8 +116,6 @@ def formatear_fuentes(documentos: list) -> str:
 
     return texto.strip()
 
-
-# ── Estado global de la aplicación ───────────────────────────────────────────
 estado = {
     "chain":   None,
     "k":       3,
@@ -141,9 +123,8 @@ estado = {
     "topic":   "Todos",
 }
 
-
+# Inicializa o reinicializa la chain con los parámetros actuales.
 def inicializar_chain(k, threshold):
-    """Inicializa o reinicializa la chain con los parámetros actuales."""
     try:
         estado["chain"]     = crear_chain(k, threshold, LLM_MODEL)
         estado["k"]         = k
@@ -161,9 +142,6 @@ def responder(
     threshold: float,
     topic: str,
 ):
-    """
-    Función principal que procesa cada pregunta del usuario.
-    """
     if not pregunta.strip():
         return historial, historial, "Escribe una pregunta primero."
 
@@ -199,16 +177,15 @@ def responder(
     historial.append((pregunta, respuesta))
     return historial, historial, fuentes_txt
 
-
+# Resetea la memoria y el historial visible.
 def limpiar_historial():
-    """Resetea la memoria y el historial visible."""
     if estado["chain"] is not None:
         estado["chain"].memory.clear()
     estado["chain"] = None  # forzar reinicialización
     return [], [], ""
 
 
-# ── Interfaz Gradio ───────────────────────────────────────────────────────────
+# Interfaz Gradio
 def construir_interfaz():
     temas = cargar_temas()
 
@@ -221,14 +198,14 @@ def construir_interfaz():
         """,
     ) as demo:
 
-        # ── Encabezado ────────────────────────────────────────────────────────
+        # Encabezado 
         gr.Markdown("""
         # 📚 Asistente RAG — Khan Academy
         Haz preguntas sobre el contenido educativo de Khan Academy.
         Las respuestas se generan **exclusivamente** a partir de las transcripciones indexadas.
         """)
 
-        # ── Layout principal ──────────────────────────────────────────────────
+        # Layout principal 
         with gr.Row():
 
             # Panel izquierdo: chat
@@ -279,10 +256,10 @@ def construir_interfaz():
                     elem_classes=["fuentes-panel"],
                 )
 
-        # ── Estado interno (historial LangChain) ──────────────────────────────
+        # Estado interno (historial LangChain) 
         state_historial = gr.State([])
 
-        # ── Eventos ───────────────────────────────────────────────────────────
+        # Eventos 
         def on_enviar(pregunta, historial, k, threshold, topic):
             return responder(pregunta, historial, k, threshold, topic)
 
@@ -313,7 +290,7 @@ def construir_interfaz():
     return demo
 
 
-# ── Punto de entrada ──────────────────────────────────────────────────────────
+# Punto de entrada 
 if __name__ == "__main__":
     import os
 
@@ -332,8 +309,7 @@ if __name__ == "__main__":
 
     demo = construir_interfaz()
     demo.launch(
-        server_name="0.0.0.0",
+        server_name="127.0.0.1",
         server_port=7860,
-        share=False,
-        inbrowser=True,
+        share=True,
     )

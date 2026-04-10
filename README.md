@@ -18,8 +18,8 @@ El objetivo de este proyecto es construir un sistema de Retrieval-Augmented Gene
 cd rag-khanacademy
 
 # 2. Crea el entorno virtual
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m venv venv
+source venv/bin/activate   
 
 # 3. Instala dependencias
 pip install -r requirements.txt
