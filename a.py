@@ -8,7 +8,6 @@ Requisitos previos:
 """
 
 import json
-import os
 import gradio as gr
 from langchain_ollama import OllamaEmbeddings, OllamaLLM
 from langchain_community.vectorstores import Chroma
@@ -21,7 +20,7 @@ COLLECTION_NAME = "khanacademy"
 EMBED_MODEL     = "nomic-embed-text"
 LLM_MODEL       = "llama3.2"
 
-# Prompt del sistema
+# Prompt del sistema 
 PROMPT_TEMPLATE = """Eres un asistente educativo especializado en el contenido de Khan Academy.
 Responde ÚNICAMENTE basándote en el contexto proporcionado a continuación.
 Si la respuesta no se encuentra en el contexto, indica claramente:
@@ -99,14 +98,15 @@ def crear_chain(k: int, score_threshold: float, llm_model: str):
     return chain
 
 # Formatea los documentos recuperados para mostrarlos en la interfaz.
+
 def formatear_fuentes(documentos: list) -> str:
     if not documentos:
         return "⚠️ No se recuperaron fragmentos relevantes para esta consulta."
 
     texto = ""
     for i, doc in enumerate(documentos, 1):
-        titulo   = doc.metadata.get("title", "Sin título")
-        url      = doc.metadata.get("url", "")
+        titulo = doc.metadata.get("title", "Sin título")
+        url    = doc.metadata.get("url", "")
         extracto = doc.page_content[:300].strip()
 
         texto += f"**[{i}] {titulo}**\n"
@@ -117,10 +117,10 @@ def formatear_fuentes(documentos: list) -> str:
     return texto.strip()
 
 estado = {
-    "chain":     None,
-    "k":         3,
+    "chain":   None,
+    "k":       3,
     "threshold": 0.3,
-    "topic":     "Todos",
+    "topic":   "Todos",
 }
 
 # Inicializa o reinicializa la chain con los parámetros actuales.
@@ -142,10 +142,6 @@ def responder(
     threshold: float,
     topic: str,
 ):
-    # Normalizar historial por si llega en formato incorrecto
-    if not isinstance(historial, list):
-        historial = []
-
     if not pregunta.strip():
         return historial, historial, "Escribe una pregunta primero."
 
@@ -159,8 +155,8 @@ def responder(
         if not ok:
             msg = "❌ Error al conectar con Ollama. Comprueba que está en ejecución."
             historial.append({"role": "user", "content": pregunta})
-            historial.append({"role": "assistant", "content": msg})
-            return historial, historial, ""
+            historial.append({"role": "assistant", "content": respuesta})
+            return historial, historial, fuentes_txt
 
     # Añadir filtro por topic si no es "Todos"
     if topic != "Todos":
@@ -178,9 +174,8 @@ def responder(
         respuesta   = f"❌ Error al procesar la pregunta: {e}"
         fuentes_txt = ""
 
-    # Actualizar historial en formato Gradio 6.x (diccionarios role/content)
-    historial.append({"role": "user", "content": pregunta})
-    historial.append({"role": "assistant", "content": respuesta})
+    # Actualizar historial del chatbot
+    historial.append((pregunta, respuesta))
     return historial, historial, fuentes_txt
 
 # Resetea la memoria y el historial visible.
@@ -197,14 +192,14 @@ def construir_interfaz():
 
     with gr.Blocks(title="RAG Khan Academy") as demo:
 
-        # Encabezado
+        # Encabezado 
         gr.Markdown("""
         # 📚 Asistente RAG — Khan Academy
         Haz preguntas sobre el contenido educativo de Khan Academy.
         Las respuestas se generan **exclusivamente** a partir de las transcripciones indexadas.
         """)
 
-        # Layout principal
+        # Layout principal 
         with gr.Row():
 
             # Panel izquierdo: chat
@@ -213,7 +208,7 @@ def construir_interfaz():
                     label="Conversación",
                     height=480,
                     show_label=True,
-                )
+                )   
 
                 with gr.Row():
                     campo_pregunta = gr.Textbox(
@@ -251,12 +246,12 @@ def construir_interfaz():
                 gr.Markdown("### 📄 Fuentes recuperadas")
                 panel_fuentes = gr.Markdown(
                     value="Las fuentes aparecerán aquí después de tu primera pregunta.",
+                    elem_classes=["fuentes-panel"],
                 )
 
-        # Estado interno (historial LangChain)
+        # Estado interno (historial LangChain) 
         state_historial = gr.State([])
-
-        # Eventos
+        # Eventos 
         def on_enviar(pregunta, historial, k, threshold, topic):
             if not isinstance(historial, list):
                 historial = []
@@ -289,8 +284,10 @@ def construir_interfaz():
     return demo
 
 
-# Punto de entrada
+# Punto de entrada 
 if __name__ == "__main__":
+    import os
+
     # Verificar que la base de datos existe
     if not os.path.exists(CHROMA_DIR):
         print("❌ No se encontró la base de datos vectorial.")
